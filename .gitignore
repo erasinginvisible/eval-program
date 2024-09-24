@@ -163,6 +163,7 @@ cython_debug/
 
 # Project specific
 
-cache/
+/cache/*
+!/cache/cache_will_be_here
 /model/*
 !/model/put_models_here
