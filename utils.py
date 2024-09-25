@@ -95,18 +95,45 @@ def setup_logger(quiet=False):
     return logger
 
 
+import logging
+from pathlib import Path
+import shutil
+
 def verify_input_dir(input_dir):
     logger = logging.getLogger("eval")
+    input_path = Path(input_dir)
 
-    png_files = list(Path(input_dir).glob("*.png"))
+    # Check if there's a single subfolder
+    subfolders = [f for f in input_path.iterdir() if f.is_dir()]
+    if len(subfolders) == 1:
+        subfolder = subfolders[0]
+        logger.info(f"Found a single subfolder: {subfolder.name}")
+        png_files = list(subfolder.glob("*.png"))
+    else:
+        png_files = list(input_path.glob("*.png"))
+
     if len(png_files) < 300:
         raise Exception(
             f"Input directory must contain at least 300 PNG files. Found {len(png_files)}."
         )
 
+    # Check for required files
+    missing_files = []
     for i in range(300):
-        if not (Path(input_dir) / f"{i}.png").exists():
-            raise Exception(f"File {i}.png not found in input directory.")
+        file_name = f"{i}.png"
+        if not any(file.name == file_name for file in png_files):
+            missing_files.append(file_name)
+
+    if missing_files:
+        raise Exception(f"The following required files are missing: {', '.join(missing_files)}")
+
+    # If files are in a subfolder, move them to input_dir
+    if len(subfolders) == 1:
+        logger.info("Moving PNG files from subfolder to input directory.")
+        for png_file in png_files:
+            shutil.move(str(png_file), str(input_path / png_file.name))
+        subfolder.rmdir()
+        logger.info(f"Removed subfolder: {subfolder.name}")
 
     logger.info("Input directory verified successfully.")
 
