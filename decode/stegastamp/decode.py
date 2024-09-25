@@ -137,10 +137,11 @@ def bit_error_rate(pred, target):
     return np.mean(pred != target)
 
 
-def report(output_path, decoded_messages, message_paths, quiet):
+def report(output_path, decoded_messages, picture_paths, message_paths, quiet):
     json_path = os.path.join(output_path, "stegastamp-decode.json")
     data = {}
-    for idx, message_path in zip(sorted(decoded_messages.keys()), message_paths):
+    for picture_path, message_path in zip(picture_paths, message_paths):
+        idx = int(picture_path.split("/")[-1].split(".")[0])
         gt_message = load_message(message_path)
         distance = bit_error_rate(decoded_messages[idx], gt_message)
         data[idx] = distance
@@ -155,7 +156,7 @@ def main(picture_paths, message_paths, output_path, quiet=True):
         print(f"Evaluating stegastamp")
     assert len(picture_paths) == len(message_paths)
     decoded_messages = process(picture_paths, quiet)
-    report(output_path, decoded_messages, message_paths, quiet)
+    report(output_path, decoded_messages, picture_paths, message_paths, quiet)
 
 
 if __name__ == "__main__":

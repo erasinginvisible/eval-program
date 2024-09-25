@@ -1,17 +1,22 @@
 import os
-import argparse
-import numpy as np
-import json
-from PIL import Image
 import torch
+from huggingface_hub import constants
+
+current_dir = os.getcwd()
+torch.hub.set_dir(os.path.join(current_dir, "cache", "pytorch"))
+
+import argparse
+import json
+from tqdm.auto import tqdm
+from PIL import Image
 from torchvision import transforms
-from tqdm import tqdm
-from utils import *
 import warnings
+
+from utils import *
+
 
 warnings.filterwarnings("ignore")
 
-MODEL_CHECKPOINT = "./model/stablesig.pth"
 NORMALIZE_IMAGENET = transforms.Normalize(
     mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]
 )
@@ -35,7 +40,9 @@ def load_model(device):
         channels=params.decoder_channels,
     )
 
-    state_dict = torch.load(MODEL_CHECKPOINT, map_location=device)["encoder_decoder"]
+    state_dict = torch.load("./model/stablesig.pth", map_location=device)[
+        "encoder_decoder"
+    ]
     encoder_decoder_state_dict = {
         k.replace("module.", ""): v for k, v in state_dict.items()
     }
@@ -73,9 +80,9 @@ def load_files(img_msg_dict, test=False):
             msgs.append(binary_string)
 
     if test:
-        imgs = imgs+imgs
-        msgs = msgs+msgs[::-1]
-    
+        imgs = imgs + imgs
+        msgs = msgs + msgs[::-1]
+
     return imgs, msgs
 
 
@@ -91,11 +98,14 @@ def main(args):
     decoder = load_model(device)
 
     outputs = [decode(decoder, img, device=device) for img in tqdm(imgs)]
-    results = [bit_error_rate(output.flatten(), message, device=device) for output, message in zip(outputs, msgs)]
+    results = [
+        bit_error_rate(output.flatten(), message, device=device)
+        for output, message in zip(outputs, msgs)
+    ]
 
     result_dict = {
-        os.path.splitext(os.path.basename(img_path))[0]:result
-        for img_path, result in zip(args.img_paths, results) 
+        os.path.splitext(os.path.basename(img_path))[0]: result
+        for img_path, result in zip(args.img_paths, results)
     }
     with open(os.path.join(args.output_dir, "stablesig-decode.json"), "w") as file:
         json.dump(result_dict, file)
@@ -103,8 +113,8 @@ def main(args):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser("Args")
-    parser.add_argument("-p", "--img_paths", nargs='+', type=str, required=True)
-    parser.add_argument("-m", "--msg_paths", nargs='+', type=str, required=True)
+    parser.add_argument("-p", "--img_paths", nargs="+", type=str, required=True)
+    parser.add_argument("-m", "--msg_paths", nargs="+", type=str, required=True)
     parser.add_argument("-o", "--output_dir", type=str, default="./data/result")
     args = parser.parse_args()
     main(args)
