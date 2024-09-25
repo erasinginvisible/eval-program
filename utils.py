@@ -122,12 +122,49 @@ def verify_input_dir(input_dir, output_dir):
 
     # Check if there's a single subfolder
     subfolders = [f for f in input_path.iterdir() if f.is_dir()]
-    if len(subfolders) == 1:
-        subfolder = subfolders[0]
-        logger.info(f"Found a single subfolder: {subfolder.name}")
-        png_files = list(subfolder.glob("*.png"))
+
+    # First, check in the input directory for required files
+    png_files = list(input_path.glob("*.png"))
+    required_files = set(f"{i}.png" for i in range(300))
+    found_files = set(file.name for file in png_files)
+
+    if required_files.issubset(found_files):
+        logger.info("All required files found in the input directory.")
     else:
-        png_files = list(input_path.glob("*.png"))
+        # If not found in input directory, check subfolders
+        valid_subfolders = []
+
+        for subfolder in subfolders:
+            subfolder_png_files = list(subfolder.glob("*.png"))
+            subfolder_files = set(file.name for file in subfolder_png_files)
+
+            if required_files.issubset(subfolder_files):
+                valid_subfolders.append(subfolder)
+
+        if len(valid_subfolders) == 0:
+            raise Exception(
+                "Required files (0.png to 299.png) not found in input directory or any subfolder."
+            )
+        elif len(valid_subfolders) > 1:
+            raise Exception(
+                "Ambiguity: Multiple subfolders contain the required files."
+            )
+        else:
+            # Move files from the single valid subfolder to input directory
+            valid_subfolder = valid_subfolders[0]
+            logger.info(f"Found required files in subfolder: {valid_subfolder.name}")
+            logger.info("Moving PNG files from subfolder to input directory.")
+
+            for png_file in valid_subfolder.glob("*.png"):
+                if png_file.name in required_files:
+                    shutil.move(str(png_file), str(input_path / png_file.name))
+
+            logger.info(
+                f"Images in subfolder: {valid_subfolder.name} moved to correct location"
+            )
+
+    # Final check to ensure all required files are in the input directory
+    png_files = list(input_path.glob("*.png"))
 
     if len(png_files) < 300:
         raise Exception(
@@ -145,13 +182,6 @@ def verify_input_dir(input_dir, output_dir):
         raise Exception(
             f"The following required files are missing: {', '.join(missing_files)}"
         )
-
-    # If files are in a subfolder, move them to input_dir
-    if len(subfolders) == 1:
-        logger.info("Moving PNG files from subfolder to input directory.")
-        for png_file in png_files:
-            shutil.move(str(png_file), str(input_path / png_file.name))
-        logger.info(f"Images in subfolder: {subfolder.name} moved to correct location")
 
     logger.info("Input directory verified successfully.")
 
