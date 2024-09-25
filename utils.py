@@ -132,8 +132,7 @@ def verify_input_dir(input_dir):
         logger.info("Moving PNG files from subfolder to input directory.")
         for png_file in png_files:
             shutil.move(str(png_file), str(input_path / png_file.name))
-        subfolder.rmdir()
-        logger.info(f"Removed subfolder: {subfolder.name}")
+        logger.info(f"Images in subfolder: {subfolder.name} moved to correct location")
 
     logger.info("Input directory verified successfully.")
 
