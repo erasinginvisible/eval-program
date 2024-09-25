@@ -8,6 +8,7 @@ os.environ["TRANSFORMERS_CACHE"] = os.path.join(current_dir, "cache", "huggingfa
 os.environ["HF_HOME"] = os.path.join(current_dir, "cache", "huggingface")
 constants.HUGGINGFACE_HUB_CACHE = os.path.join(current_dir, "cache", "huggingface")
 
+
 import argparse
 import warnings
 import json
@@ -60,7 +61,8 @@ def save_json(data, filepath):
 
 def process_single(mode, indices, path, clean_path, attacked_path, quiet, limit):
     if mode.endswith("_fid"):
-        num_gpus = torch.cuda.device_count()
+        # num_gpus = torch.cuda.device_count()
+        num_gpus = 1
         if num_gpus == 0:
             raise RuntimeError("No GPUs available for processing")
         if not quiet:
@@ -213,7 +215,8 @@ def worker(mode, gpu, path, clean_path, attacked_path, indices, lock, counter, r
 
 def process_parallel(mode, indices, path, clean_path, attacked_path, quiet):
     mp.set_start_method("spawn", force=True)  # Set start method to 'spawn'
-    num_gpus = torch.cuda.device_count()
+    # num_gpus = torch.cuda.device_count()
+    num_gpus = 1
     if num_gpus == 0:
         raise RuntimeError("No GPUs available for processing")
     if not quiet:

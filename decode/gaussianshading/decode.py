@@ -41,6 +41,7 @@ def load_model():
     )
     pipe.safety_checker = None
     pipe = pipe.to("cuda")
+    pipe.set_progress_bar_config(disable=True)
     tester_prompt = ""
     text_embeddings = pipe.get_text_embedding(tester_prompt)
     return pipe, text_embeddings
@@ -84,7 +85,8 @@ def main(picture_paths, message_paths, output_path, quiet=True):
         distance = 1 - acc_metric
         data[int(picture_path.split("/")[-1].split(".")[0])] = distance
 
-    json_path = os.path.join(output_path, "gaussianshading-decode.json")
+    # hide watermark name
+    json_path = os.path.join(output_path, "a-decode.json")
     save_json(data, json_path)
     if not quiet:
         print(f"Decoded distances saved to {json_path}")

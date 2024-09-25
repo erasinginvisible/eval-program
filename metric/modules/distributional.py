@@ -22,11 +22,15 @@ def save_images_to_temp(images, num_workers, verbose=False):
     func = partial(save_single_image_to_temp, temp_dir=temp_dir)
     with ProcessPoolExecutor(max_workers=num_workers) as executor:
         tasks = executor.map(func, range(len(images)), images)
-        list(tasks) if not verbose else list(
-            tqdm(
-                tasks,
-                total=len(images),
-                desc="Saving images ",
+        (
+            list(tasks)
+            if not verbose
+            else list(
+                tqdm(
+                    tasks,
+                    total=len(images),
+                    desc="Saving images ",
+                )
             )
         )
     return temp_dir
@@ -64,7 +68,8 @@ def compute_fid(
     if num_workers is not None:
         assert 1 <= num_workers <= os.cpu_count()
     else:
-        num_workers = max(torch.cuda.device_count() * 4, 8)
+        # num_workers = max(torch.cuda.device_count() * 4, 8)
+        num_workers = 4
 
     # Check images, can be paths or lists of PIL images
     if not isinstance(images1, list):
@@ -78,9 +83,13 @@ def compute_fid(
         # Save images to temp dir if needed
         path1 = save_images_to_temp(images1, num_workers=num_workers, verbose=verbose)
         path2 = save_images_to_temp(images2, num_workers=num_workers, verbose=verbose)
-        
+
     # Attempt to cache statistics for path1
-    if not fid.test_stats_exists(name=str(os.path.abspath(path1)).replace("/", "_"), mode=mode, model_name=model_name):
+    if not fid.test_stats_exists(
+        name=str(os.path.abspath(path1)).replace("/", "_"),
+        mode=mode,
+        model_name=model_name,
+    ):
         fid.make_custom_stats(
             name=str(os.path.abspath(path1)).replace("/", "_"),
             fdir=path1,

@@ -1,5 +1,7 @@
 import os
-import numpy as np
+
+os.environ["TQDM_MININTERVAL"] = "5"
+os.environ["TQDM_POSITION"] = "-1"
 
 from utils import *
 
@@ -47,14 +49,26 @@ def compute_performance(output_dir):
     results = []
     for mode, shuffle_indices in SHUFFLE_DICT.items():
         if "+" not in mode:
-            distance_data = load_json(os.path.join(output_dir, f"{mode}-decode.json"))
+            distance_data = load_json(
+                os.path.join(
+                    output_dir, f"{WATERMARK_NAME_REPLACEMENT[mode]}-decode.json"
+                )
+            )
             for idx in shuffle_indices:
                 distance = distance_data[str(idx)]
                 results.append(THRESHOLD_FUNCTIONS[mode][0](distance))
         else:
             mode1, mode2 = mode.split("+")
-            distance_data1 = load_json(os.path.join(output_dir, f"{mode1}-decode.json"))
-            distance_data2 = load_json(os.path.join(output_dir, f"{mode2}-decode.json"))
+            distance_data1 = load_json(
+                os.path.join(
+                    output_dir, f"{WATERMARK_NAME_REPLACEMENT[mode1]}-decode.json"
+                )
+            )
+            distance_data2 = load_json(
+                os.path.join(
+                    output_dir, f"{WATERMARK_NAME_REPLACEMENT[mode2]}-decode.json"
+                )
+            )
             for idx in shuffle_indices:
                 distance1 = distance_data1[str(idx)]
                 distance2 = distance_data2[str(idx)]
@@ -71,13 +85,14 @@ def main(input_dir, output_dir, quiet=False):
     logger = setup_logger(quiet)
 
     try:
-        verify_input_dir(input_dir)
+        verify_input_dir(input_dir, output_dir)
         proc_dir = process_images("black", input_dir)
         decode(proc_dir, output_dir)
         metric("black", proc_dir, output_dir)
         performance = compute_performance(output_dir)
         quality = compute_quality(output_dir)
         save_results(output_dir, performance, quality)
+        remove_results(input_dir, output_dir)
 
         logger.info("All operations completed successfully.")
     except Exception as e:

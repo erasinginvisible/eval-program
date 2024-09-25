@@ -77,13 +77,14 @@ def worker(gpu, picture_paths, lock, counter, results):
 
 def process(picture_paths, quiet):
     mp.set_start_method("spawn", force=True)  # Set start method to 'spawn'
-    num_gpus = torch.cuda.device_count()
+    # num_gpus = torch.cuda.device_count()
+    num_gpus = 1
     if num_gpus == 0:
         raise RuntimeError("No GPUs available for processing")
     if not quiet:
         print(f"Using {num_gpus} GPUs for processing")
 
-    num_workers = num_gpus * 2
+    num_workers = num_gpus
     chunk_size = len(picture_paths) // num_workers
     with mp.Manager() as manager:
         counter = manager.Value("i", 0)
@@ -108,12 +109,12 @@ def process(picture_paths, quiet):
             processes.append(p)
 
         with tqdm(
-            total=len(picture_paths), desc="Decoding images", unit="file"
+            total=len(picture_paths), desc="Decoding images", unit="file", mininterval=5
         ) as pbar:
             while True:
                 with lock:
                     pbar.n = counter.value
-                    pbar.refresh()
+                    # pbar.refresh()
                     if counter.value >= len(picture_paths):
                         break
 
@@ -138,7 +139,7 @@ def bit_error_rate(pred, target):
 
 
 def report(output_path, decoded_messages, picture_paths, message_paths, quiet):
-    json_path = os.path.join(output_path, "stegastamp-decode.json")
+    json_path = os.path.join(output_path, "e-decode.json")
     data = {}
     for picture_path, message_path in zip(picture_paths, message_paths):
         idx = int(picture_path.split("/")[-1].split(".")[0])

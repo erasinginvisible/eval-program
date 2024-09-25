@@ -7,7 +7,11 @@ import numpy as np
 from PIL import Image
 from scipy import linalg
 import zipfile
-from torch.hub import get_dir
+import tempfile
+
+# from torch.hub import get_dir
+get_dir = lambda: "cache/pytorch"
+
 from .utils import *
 from .features import build_feature_extractor, get_reference_statistics
 from .resize import *

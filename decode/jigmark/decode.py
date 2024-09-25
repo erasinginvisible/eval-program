@@ -69,7 +69,7 @@ def main(args):
         os.path.splitext(os.path.basename(img_path))[0]: result
         for img_path, result in zip(args.img_paths, results)
     }
-    with open(os.path.join(args.output_dir, "jigmark-decode.json"), "w") as file:
+    with open(os.path.join(args.output_dir, "b-decode.json"), "w") as file:
         json.dump(result_dict, file)
 
 

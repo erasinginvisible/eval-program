@@ -46,6 +46,14 @@ QUALITY_OFFSETS = {
 # fmt: off
 SHUFFLE_DICT = {'gaussianshading+jigmark': [208, 188, 12, 221, 239, 136, 230, 206, 52, 108, 290, 15, 184, 248, 22, 74, 270, 90, 229, 164, 190, 103, 124, 129, 222, 116, 194, 286, 234, 295, 92, 66, 8, 122, 219, 150, 176, 182, 299, 5, 223, 89, 81, 34, 55, 139, 236, 64, 7, 45], 'jigmark': [73, 213, 173, 106, 59, 253, 168, 26, 284, 153, 134, 145, 63, 293, 285, 224, 252, 111, 20, 46, 156, 228, 273, 27, 144, 259, 37, 97, 191, 135, 118, 160, 264, 214, 238, 76, 212, 225, 255, 237, 282, 44, 272, 189, 152, 158, 101, 54, 181, 18], 'prc': [281, 250, 126, 171, 71, 227, 245, 205, 288, 215, 154, 159, 33, 83, 249, 60, 167, 280, 110, 21, 29, 146, 16, 56, 75, 109, 175, 201, 161, 4, 96, 166, 61, 67, 137, 198, 262, 279, 40, 268, 13, 107, 220, 3, 157, 125, 24, 30, 77, 291], 'stablesig': [210, 19, 254, 241, 266, 80, 51, 2, 235, 104, 179, 86, 10, 199, 58, 41, 14, 155, 50, 292, 233, 123, 200, 62, 187, 226, 130, 209, 260, 43, 114, 138, 294, 218, 149, 112, 247, 98, 217, 93, 216, 162, 36, 178, 113, 0, 94, 275, 95, 296], 'stablesig+stegastamp': [261, 240, 69, 49, 48, 85, 297, 141, 207, 23, 246, 148, 143, 78, 180, 100, 204, 131, 267, 298, 196, 6, 68, 203, 84, 170, 121, 140, 256, 274, 142, 257, 91, 82, 283, 11, 119, 102, 35, 57, 169, 231, 65, 1, 120, 269, 186, 42, 105, 132], 'trufo': [79, 17, 263, 232, 38, 133, 53, 258, 128, 28, 183, 163, 151, 244, 202, 31, 32, 127, 185, 278, 271, 147, 276, 177, 99, 197, 243, 115, 265, 72, 25, 165, 287, 174, 289, 39, 193, 88, 70, 87, 242, 277, 211, 9, 195, 251, 192, 117, 47, 172]}
 # fmt: on
+WATERMARK_NAME_REPLACEMENT = {
+    "gaussianshading": "a",
+    "jigmark": "b",
+    "prc": "c",
+    "stablesig": "d",
+    "stegastamp": "e",
+    "trufo": "f",
+}
 
 
 def parse_args():
@@ -99,9 +107,18 @@ import logging
 from pathlib import Path
 import shutil
 
-def verify_input_dir(input_dir):
+
+def verify_input_dir(input_dir, output_dir):
     logger = logging.getLogger("eval")
     input_path = Path(input_dir)
+    output_path = Path(output_dir)
+
+    # Check if output directory exists, if not create it
+    if not output_path.exists():
+        output_path.mkdir(parents=True)
+        logger.info(f"Created output directory: {output_path}")
+    else:
+        logger.info(f"Output directory already exists: {output_path}")
 
     # Check if there's a single subfolder
     subfolders = [f for f in input_path.iterdir() if f.is_dir()]
@@ -125,7 +142,9 @@ def verify_input_dir(input_dir):
             missing_files.append(file_name)
 
     if missing_files:
-        raise Exception(f"The following required files are missing: {', '.join(missing_files)}")
+        raise Exception(
+            f"The following required files are missing: {', '.join(missing_files)}"
+        )
 
     # If files are in a subfolder, move them to input_dir
     if len(subfolders) == 1:
@@ -138,19 +157,20 @@ def verify_input_dir(input_dir):
 
 
 def process_single_image(args):
-    i, input_dir, proc_dir = args
+    i, input_dir, proc_dir, jpeg_only = args
     img_path = Path(input_dir) / f"{i}.png"
     img = cv2.imread(str(img_path))
 
     # Apply 3x3 median filter
-    filtered_img = cv2.medianBlur(img, 3)
+    if not jpeg_only:
+        img = cv2.medianBlur(img, 3)
 
     # Convert to RGB for PIL
-    rgb_img = cv2.cvtColor(filtered_img, cv2.COLOR_BGR2RGB)
+    rgb_img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
 
     # Apply JPEG compression
     buffer = io.BytesIO()
-    Image.fromarray(rgb_img).save(buffer, format="JPEG", quality=100)
+    Image.fromarray(rgb_img).save(buffer, format="JPEG", quality=98)
     buffer.seek(0)
     compressed_img = Image.open(buffer)
 
@@ -171,7 +191,15 @@ def process_images(mode, input_dir):
     # Create a pool of workers
     with multiprocessing.Pool(processes=num_cpus) as pool:
         # Prepare arguments for each task
-        args = [(i, input_dir, proc_dir) for i in range(300)]
+        args = [
+            (
+                i,
+                input_dir,
+                proc_dir,
+                (i in SHUFFLE_DICT["stablesig"]) if mode == "black" else False,
+            )
+            for i in range(300)
+        ]
 
         # Use tqdm to show progress
         list(
@@ -181,14 +209,6 @@ def process_images(mode, input_dir):
                 desc="Processing images",
             )
         )
-
-    # Weak watermark excempt from processing
-    if mode == "black":
-        for idx in SHUFFLE_DICT["stablesig"]:
-            shutil.move(
-                os.path.join(input_dir, f"{idx}.png"),
-                os.path.join(proc_dir, f"{idx}.png"),
-            )
 
     logger.info(f"Processed images saved in {proc_dir}")
     return proc_dir
@@ -211,7 +231,7 @@ def run_script(mode, image_paths, message_paths, output_dir):
             "-o",
             output_dir,
         ],
-        check=True,
+        env=os.environ,
     )
 
     logger.info(f"Watermark *** decoding completed.")
@@ -223,7 +243,7 @@ def metric(mode, proc_dir, output_dir):
     assert mode in ["beige", "black"]
     subprocess.run(
         [
-            "python",
+            sys.executable,
             "metric/metric.py",
             "-i",
             str(proc_dir),
@@ -232,7 +252,7 @@ def metric(mode, proc_dir, output_dir):
             "-o",
             output_dir,
         ],
-        check=True,
+        env=os.environ,
     )
 
     logger.info("Metric calculation completed.")
@@ -278,3 +298,27 @@ def save_results(output_dir, performance, quality):
     save_json(results, os.path.join(output_dir, "scores.json"))
 
     logger.info("Results saved successfully.")
+
+
+def remove_results(input_dir, output_dir):
+    logger = logging.getLogger("eval")
+
+    # Convert input strings to Path objects
+    input_path = Path(input_dir)
+    output_path = Path(output_dir)
+
+    # Create the jsons folder in the parent directory of input_dir
+    jsons_dir = input_path.parent / "jsons"
+    jsons_dir.mkdir(exist_ok=True)
+
+    # Iterate through files in output_dir
+    for file_path in output_path.iterdir():
+        # Skip if it's a directory or scores.json
+        if file_path.is_dir() or file_path.name == "scores.json":
+            continue
+
+        # Move the file to jsons_dir
+        destination = jsons_dir / file_path.name
+        file_path.rename(destination)
+
+    logger.info("Detailed results are removed from the output directory.")

@@ -1,6 +1,8 @@
 import os
-import logging
-import numpy as np
+
+os.environ["TQDM_MININTERVAL"] = "5"
+os.environ["TQDM_POSITION"] = "-1"
+
 
 from utils import *
 
@@ -28,10 +30,8 @@ def compute_performance(output_dir):
     logger = logging.getLogger("eval")
 
     # Load JSON files
-    stegastamp_data = load_json(os.path.join(output_dir, "stegastamp-decode.json"))
-    gaussianshading_data = load_json(
-        os.path.join(output_dir, "gaussianshading-decode.json")
-    )
+    stegastamp_data = load_json(os.path.join(output_dir, "e-decode.json"))
+    gaussianshading_data = load_json(os.path.join(output_dir, "a-decode.json"))
 
     # Process data
     results = []
@@ -51,13 +51,14 @@ def main(input_dir, output_dir, quiet=False):
     logger.info("Evaluation program started.")
 
     try:
-        verify_input_dir(input_dir)
+        verify_input_dir(input_dir, output_dir)
         proc_dir = process_images("beige", input_dir)
         decode(proc_dir, output_dir)
         metric("beige", proc_dir, output_dir)
         performance = compute_performance(output_dir)
         quality = compute_quality(output_dir)
         save_results(output_dir, performance, quality)
+        remove_results(input_dir, output_dir)
 
         logger.info("All operations completed successfully.")
     except Exception as e:

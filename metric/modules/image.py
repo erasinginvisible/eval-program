@@ -61,7 +61,8 @@ def compute_metric_repeated(
     if num_workers is not None:
         assert 1 <= num_workers <= os.cpu_count()
     else:
-        num_workers = max(torch.cuda.device_count() * 4, 8)
+        # num_workers = max(torch.cuda.device_count() * 4, 8)
+        num_workers = 4
 
     metric_name = metric_func.__name__.split("_")[1].upper()
 
