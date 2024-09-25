@@ -1,5 +1,6 @@
 import os
 import io
+import sys
 import shutil
 import warnings
 import argparse
@@ -175,7 +176,7 @@ def run_script(mode, image_paths, message_paths, output_dir):
     ), f"Number of images and messages must be equal. Found {len(image_paths)} images and {len(message_paths)} messages."
     subprocess.run(
         [
-            "python",
+            sys.executable,
             f"decode/{mode}/decode.py",
             "-p",
             *image_paths,

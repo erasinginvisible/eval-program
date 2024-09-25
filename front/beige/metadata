@@ -1,1 +1,1 @@
-command: python3 beige.py -i $input -o $output
+command: python3.9 beige.py -i $input -o $output

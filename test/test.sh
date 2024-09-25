@@ -61,7 +61,7 @@ run_evaluation() {
     if [ "$verbose" = true ]; then
         echo "Running Python script..."
     fi
-    python3 "$type.py" -i "test/$type/res" -o "test/$type/out"
+    python3.9 "$type.py" -i "test/$type/res" -o "test/$type/out"
     
     echo "Evaluation complete. Results:"
     cat "test/$type/out/scores.json"
