@@ -49,14 +49,6 @@ eval-program/
     *Note: `requirements.txt` includes `onnxruntime-gpu`, implying GPU usage is expected for efficient execution, particularly for metric calculations. Ensure appropriate CUDA/GPU drivers are installed if running locally.*
 *   **Data:** The program expects certain data files (e.g., reference images, messages) potentially within the `data/` directory structure, which are not fully detailed here but are referenced by the code (e.g., `data/encoded/...`).
 
-## Models
-
-The `model/` directory in this repository might be used for storing model-related files, but the primary models required for running the evaluation (especially those used for calculating quality metrics like CLIP-FID) are intended to be hosted on Hugging Face.
-
-*   **Hugging Face Repository:** [TODO: Add link to Hugging Face model repository here]
-*   **Caching:** The evaluation scripts likely download and cache these models locally upon first run (potentially in the `cache/` directory).
-*   **Trufo Models:** *[NOTE FOR REVIEW: Specific models related to the 'Trufo' watermark evaluation may be hosted separately or kept private. Ensure the public Hugging Face repository only contains models intended for public release.]*
-
 ## Usage (Local Execution)
 
 While designed for Codabench, you can run the evaluation locally using the entry point scripts:
@@ -77,12 +69,8 @@ python black.py --input_dir /path/to/your/submission/images --output_dir /path/t
 This program is intended to be packaged within a Docker container (like the one described in the `worker-container` repository) and run by a Codabench compute worker. The worker executes the appropriate script (`beige.py` or `black.py`) providing the submission and output directories as arguments.
 
 ## License
-
-(Assuming Apache 2.0 based on the related worker repository - Please update if incorrect)
-
-This evaluation program is likely based on or derived from work associated with Codabench or related projects.
 ```
-Copyright [Year] [Copyright Holder]
+Copyright [2025] [Mucong Ding]
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -96,5 +84,3 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 ```
-
-Please verify and update the copyright holder and year. 
